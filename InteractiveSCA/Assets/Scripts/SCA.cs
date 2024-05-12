@@ -16,20 +16,19 @@ public struct Edge
     public override string ToString() => $"({V1}, {V2})";
 }
 
-
 public class SCA : MonoBehaviour
 {
     // Params.
     public GameObject Particle;
-    public GameObject BranchPoint;
-    private int NParticlesStart = 100;
-    private Vector3 VolumeCenter = new Vector3(0.0f,0.0f,0.0f);
-    private float VolumeSize = 10.0f;
-    private Vector3 StartingPosition = new Vector3(0.0f,-30.0f,0.0f);
+    public GameObject BranchParticle;
+
+    private int NPointVolumeStart = 100;
+    private Vector3 PointVolumeCenter = new Vector3(0.0f,0.0f,0.0f);
+    private float PointVolumeSize = 10.0f;
+    private Vector3 StartingPoint = new Vector3(0.0f,-30.0f,0.0f);
 
     // Variables.
-    private Stack<Vector3> NotConnectedPoints = new Stack<Vector3>();
-    private List<Vector3> ConnectedPoints = new List<Vector3>();
+    private List<Vector3> PointVolume = new List<Vector3>();
     private List<Edge> Edges = new List<Edge>();
     
 
@@ -37,35 +36,41 @@ public class SCA : MonoBehaviour
     void Start()
     {
         // Initialize starting volume - not connected points.
-        for (int i = 0; i < NParticlesStart; i++)
+        for (int i = 0; i < NPointVolumeStart; i++)
         {
-            Vector3 Position = Random.insideUnitSphere * VolumeSize + VolumeCenter;
-            Position.x = 0.0f;
+            Vector3 Position = Random.insideUnitSphere * PointVolumeSize + PointVolumeCenter;
             Instantiate(Particle, Position, Quaternion.identity);
-            NotConnectedPoints.Push(Position);
+            PointVolume.Add(Position);
         }
 
-        // Initialize connected points.
-        ConnectedPoints.Add(StartingPosition);
+        // Create first edge by connecting starting position and 
+        // closest point from point volume.
+        Vector3 closestPoint = FindClosestPointTo(StartingPoint, PointVolume);
+        Edge newEdge = new Edge(StartingPoint, closestPoint); // 2nd point is edge extremity!
+        Edges.Add(newEdge);
+        PointVolume.Remove(closestPoint);
 
-        // Perform connecting.
-        while (NotConnectedPoints.Count > 0)
+        // Perform growth.
+        while (PointVolume.Count > 0)
         {
-            Vector3 NotConnectedPoint = NotConnectedPoints.Pop();
-            float CurrDist = VolumeSize * 1000.0f; // sth large
-            Vector3 ClosestPoint = ConnectedPoints[0]; // random
-            foreach (Vector3 ConnectedPoint in ConnectedPoints)
+            // Find overall closest point.
+            float minDist = PointVolumeSize * 1000.0f; // sth large
+            closestPoint = PointVolume[0]; // random
+            Edge closestEdge = Edges[0]; // random
+            foreach (Edge edge in Edges)
             {
-                float Dist = Vector3.Distance(NotConnectedPoint, ConnectedPoint);
-                if (Dist < CurrDist)
-                {
-                    CurrDist = Dist;
-                    ClosestPoint = ConnectedPoint;
-                }
+               Vector3 currClosestPoint = FindClosestPointTo(edge.V2, PointVolume);
+               float currDist = Vector3.Distance(closestPoint, edge.V2);
+               if (currDist < minDist)
+               {
+                    minDist = currDist;
+                    closestPoint = currClosestPoint;
+                    closestEdge = edge;
+               }
             }
-            Edge NewEdge = new Edge(NotConnectedPoint, ClosestPoint);
+            Edge NewEdge = new Edge(closestEdge.V2, closestPoint); // 2nd point is edge extremity!
             Edges.Add(NewEdge);
-            ConnectedPoints.Add(NotConnectedPoint);
+            PointVolume.Remove(closestPoint);
         }
 
         // Draw.
@@ -77,7 +82,7 @@ public class SCA : MonoBehaviour
             dir = Vector3.Normalize(dir);
             for (int i = 0; i < NSteps; ++i)
             {
-                Instantiate(BranchPoint, edge.V1 + StepSize * i * dir, Quaternion.identity);
+                Instantiate(BranchParticle, edge.V1 + StepSize * i * dir, Quaternion.identity);
             }
         }
     }
@@ -87,4 +92,21 @@ public class SCA : MonoBehaviour
     {
         
     }
+
+    Vector3 FindClosestPointTo(Vector3 targetPoint, List<Vector3> allPoints)
+    {
+        // TODO: Space query acceleration structure!
+        float minDist = PointVolumeSize * 10000.0f;
+        Vector3 ClosestPoint = allPoints[0]; // random
+        foreach (Vector3 point in allPoints)
+        {
+            float currDist = Vector3.Distance(targetPoint, point);
+            if (currDist < minDist)
+            {
+                minDist = currDist;
+                ClosestPoint = point;
+            }
+        }
+        return ClosestPoint;
+    } 
 }

@@ -153,7 +153,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Particle: {fileID: 123211858}
-  BranchPoint: {fileID: 1941646966}
+  BranchParticle: {fileID: 1941646966}
 --- !u!4 &74863945
 Transform:
   m_ObjectHideFlags: 0
