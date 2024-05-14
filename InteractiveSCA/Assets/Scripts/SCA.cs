@@ -5,12 +5,13 @@ using UnityEngine;
 public struct Edge
 {
     // 2nd point is edge extremity!
-    public Edge(Vector3 v1, Vector3 v2)
+    public Edge(Vector3 v1, Vector3 v2, int _id)
     {
         V1 = v1;
         V2 = v2;
         edgeVector = V2 - v1;
         thickness = 0.5f;
+        id = _id;
     }
 
     public override string ToString() => $"({V1}, {V2})";
@@ -26,7 +27,8 @@ public struct Edge
     public Vector3 V1 { get; }
     public Vector3 V2 { get; }
     public float thickness;
-    public Vector3 edgeVector;   
+    public Vector3 edgeVector;
+    public int id;
 }
 
 public class SCA : MonoBehaviour
@@ -41,17 +43,18 @@ public class SCA : MonoBehaviour
     private Vector3 StartingPoint = new Vector3(0.0f,-30.0f,0.0f);
 
     float branchParticleStepSize = 0.3f;
+    int currBranchID = 0;
 
     // Variables.
     private List<Vector3> PointVolume = new List<Vector3>();
     private List<Edge> Edges = new List<Edge>();    
     private MeshFilter meshFilter;
-    private MeshRenderer meshRenderer;
+    //private MeshRenderer meshRenderer;
 
     void Awake()
     {
         meshFilter = gameObject.AddComponent<MeshFilter>();
-        meshRenderer = gameObject.AddComponent<MeshRenderer>();
+        //meshRenderer = gameObject.AddComponent<MeshRenderer>();
     }
 
     // Start is called before the first frame update
@@ -68,7 +71,8 @@ public class SCA : MonoBehaviour
         // Create first edge by connecting starting position and 
         // closest point from point volume.
         Vector3 closestPoint = FindClosestPointTo(StartingPoint, PointVolume);
-        Edge newEdge = new Edge(StartingPoint, closestPoint);
+        Edge newEdge = new Edge(StartingPoint, closestPoint, currBranchID);
+        currBranchID += 1;
         Edges.Add(newEdge);
         PointVolume.Remove(closestPoint);
         //drawEdge(newEdge, branchParticleStepSize, BranchParticle);
@@ -78,6 +82,7 @@ public class SCA : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        
         if (Input.GetMouseButton(0))
         {
             Debug.Log("The left mouse button is being held down.");
@@ -86,7 +91,6 @@ public class SCA : MonoBehaviour
             {
                 Vector3 Position = ray.origin + ray.direction * 30.0f;
                 Position += Random.insideUnitSphere * 10.0f;
-                Position.z = 0.0f;
                 Instantiate(Particle, Position, Quaternion.identity);
                 PointVolume.Add(Position);
             }
@@ -101,6 +105,7 @@ public class SCA : MonoBehaviour
             //drawEdge(edge, branchParticleStepSize, BranchParticle);
             drawEdge3(edge);
         }
+        
     }
 
     List<Edge> BranchGrowth()
@@ -123,7 +128,8 @@ public class SCA : MonoBehaviour
                     closestEdge = edge;
                }
             }
-            Edge NewEdge = new Edge(closestEdge.V2, closestPoint); // 2nd point is edge extremity!
+            Edge NewEdge = new Edge(closestEdge.V2, closestPoint, currBranchID); // 2nd point is edge extremity!
+            currBranchID += 1;
             Edges.Add(NewEdge);
             newEdges.Add(NewEdge);
             PointVolume.Remove(closestPoint);
@@ -161,9 +167,9 @@ public class SCA : MonoBehaviour
 
     void drawEdge3(Edge edge)
     {
-        int nVertPerEdge = 5;
-        int nVerts = 2 * nVertPerEdge;
-        int nTriangles = 2 * nVertPerEdge * 6;
+        int nVertPerEdgeVertex = 4;
+        int nVerts = 2 * nVertPerEdgeVertex;
+        int nTriangles = 2 * nVertPerEdgeVertex * 3;
 		Vector3[] vertices = new Vector3[nVerts];
 		int[] triangles = new int[nTriangles];   
 
@@ -176,57 +182,67 @@ public class SCA : MonoBehaviour
 
         mesh.Clear();
 
-        for (int s = 0; s < nVertPerEdge; s++) 
+        for (int s = 0; s < nVertPerEdgeVertex; s++) 
         {
             // quaternion to rotate the vertices along the branch direction
 		    Quaternion quat = Quaternion.FromToRotation(Vector3.up, Vector3.Normalize(edge.edgeVector));
             // radial angle of the vertex
-            float alpha = ((float)s/nVertPerEdge) * Mathf.PI * 2f;
+            float alpha = ((float)s/nVertPerEdgeVertex) * Mathf.PI * 2f;
             // radius is hard-coded to 0.1f for now
             Vector3 pos = new Vector3(Mathf.Cos(alpha)* edge.thickness, 0, Mathf.Sin(alpha) * edge.thickness);
             pos = quat * pos; // rotation
             vertices[s] = pos + edge.V1;
+            vertices[s+nVertPerEdgeVertex] = pos + edge.V2;
         }
 
-        for (int s = 0; s < nVertPerEdge; s++) 
+        for (int i = 0; i < vertices.Length; ++i)
         {
-            // quaternion to rotate the vertices along the branch direction
-		    Quaternion quat = Quaternion.FromToRotation(Vector3.up, Vector3.Normalize(edge.edgeVector));
-            // radial angle of the vertex
-            float alpha = ((float)s/nVertPerEdge) * Mathf.PI * 2f;
-            // radius is hard-coded to 0.1f for now
-            Vector3 pos = new Vector3(Mathf.Cos(alpha)* edge.thickness, 0, Mathf.Sin(alpha) * edge.thickness);
-            pos = quat * pos; // rotation
-            vertices[s] = pos + edge.V2;
+            Debug.Log(i + " " + vertices[i]);
         }
 
-        for (int s = 0; s < nVertPerEdge; s++) 
+        int tid = 0;
+        for (int s = 0; s < nVertPerEdgeVertex; s++) 
         {
-            int fid = nVertPerEdge*2*3;
-            // index of the bottom vertices 
-			int bId = 0;
-			// index of the top vertices 
-			int tId = 1;
-
-            // the triangles 
-            triangles[fid+s*6] = bId+s;
-            triangles[fid+s*6+1] = tId+s;
-            if (s == nVertPerEdge-1) {
-                triangles[fid+s*6+2] = tId;
-            } else {
-                triangles[fid+s*6+2] = tId+s+1;
+            // NOTE: clockwise!
+            if (s < nVertPerEdgeVertex-1)
+            {
+                triangles[tid] = nVertPerEdgeVertex+s;
+                tid++;
+                triangles[tid] = s+1;
+                tid++;
+                triangles[tid] = s;
+                tid++;
+                
+                
+                triangles[tid] = nVertPerEdgeVertex+s;
+                tid++;triangles[tid] = nVertPerEdgeVertex+s+1;
+                tid++;
+                triangles[tid] = s+1;
+                tid++;
             }
-
-            if (s == nVertPerEdge-1) {
-                // if last subdivision
-                triangles[fid+s*6+3] = bId+s;
-                triangles[fid+s*6+4] = tId;
-                triangles[fid+s*6+5] = bId;
-            } else {
-                triangles[fid+s*6+3] = bId+s;
-                triangles[fid+s*6+4] = tId+s+1;
-                triangles[fid+s*6+5] = bId+s+1;
+            else
+            {
+                triangles[tid] = nVertPerEdgeVertex*2-1;
+                tid++;
+                triangles[tid] = 0;
+                tid++;
+                triangles[tid] = nVertPerEdgeVertex-1;
+                tid++;
+                
+                
+                triangles[tid] = nVertPerEdgeVertex*2-1;
+                tid++;
+                triangles[tid] = nVertPerEdgeVertex;
+                tid++;
+                triangles[tid] = 0;
+                tid++;
             }
+        }
+
+        Debug.Log("N triangle indices:" + triangles.Length);
+        for (int i = 0; i < triangles.Length; ++i)
+        {
+            Debug.Log(i + " " + triangles[i]);
         }
 
         for (int i = 0; i < vertices.Length; i++)
