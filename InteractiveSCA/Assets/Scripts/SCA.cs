@@ -8,10 +8,12 @@ public class SCA : MonoBehaviour
     public GameObject Particle;
     public GameObject BranchParticle;
 
-    //private int NPointVolumeStart = 10;
-    //private Vector3 startPointVolumeCenter = new Vector3(0.0f,0.0f,0.0f);
-    //private float startPointVolumeSize = 10.0f;
+    // TODO: enable adding start points
     private Vector3 StartingPoint = new Vector3(0.0f, 0.0f, 0.0f);
+
+    public GameObject PotentialPoint;
+    public GameObject PotentialPointActive;
+    private List<GameObject> potentialPointsForGrowth = new List<GameObject>();
 
     float branchParticleStepSize = 0.3f;
     int currBranchID = 0;
@@ -23,33 +25,85 @@ public class SCA : MonoBehaviour
     private List<Vector3> PointVolume = new List<Vector3>();
     private List<Edge> Edges = new List<Edge>();    
     private MeshFilter meshFilter;
-    //private MeshRenderer meshRenderer;
 
     void Awake()
     {
         meshFilter = gameObject.AddComponent<MeshFilter>();
-        //meshRenderer = gameObject.AddComponent<MeshRenderer>();
     }
 
     // Start is called before the first frame update
     void Start()
     {
-        // Initialize starting point volume.
-        /*
-        for (int i = 0; i < NPointVolumeStart; i++)
+        int nPoints = 100;
+        float range = 25.0f;
+        for (int i = 0; i < nPoints; ++i)
         {
-            Vector3 Position = Random.insideUnitSphere * startPointVolumeSize + startPointVolumeCenter;
-            //Instantiate(Particle, Position, Quaternion.identity);
-            PointVolume.Add(Position);
+            float x = (Random.value - 0.5f) * 2.0f * range;
+            float y = (Random.value) * 2.0f * range;
+            float z = (Random.value - 0.5f) * 2.0f * range;
+            potentialPointsForGrowth.Add(Instantiate(PotentialPoint, new Vector3(x,y,z), Quaternion.identity));
         }
-        */
-
-        
     }
 
     // Update is called once per frame
     void Update()
     {
+        // Interactively add volume points for growth.
+        InteractiveAddVolumePoints();
+
+        // Perform growth.
+        List<Edge> newEdges = BranchGrowth();
+
+        // Draw branches.
+        foreach (Edge edge in newEdges)
+        {
+            //edge.drawEdgeAsParticles(branchParticleStepSize, BranchParticle);
+            edge.drawEdgeAsMesh(meshFilter);
+            edge.drawEdgeVertices(BranchParticle);
+        }
+    }
+
+    void InteractiveAddVolumePoints()
+    {
+        // 3D space is filled with points.
+        // User selects the points which are used for growth.
+
+        
+        RaycastHit hit;
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        // TODO: add collision layers.
+        GameObject activePotentialPoint = null;
+        if (Physics.Raycast(ray, out hit, Mathf.Infinity))
+        {
+            GameObject activePotentialPointDrawable = Instantiate(PotentialPointActive, hit.transform.position, Quaternion.identity);
+            
+            // Point per point.
+            if (Input.GetMouseButtonDown(0))
+            {
+                PointVolume.Add(hit.point);
+            }
+
+            // Groups of points.
+            float radius = 10.0f;
+            Collider[] hitColliders = Physics.OverlapSphere(hit.point, radius);
+            for (int i = 0; i < hitColliders.Length; i++)
+            {
+                // TODO: remove once not hovering
+                Instantiate(PotentialPointActive, hitColliders[i].transform.position, Quaternion.identity);
+            }
+            if (Input.GetMouseButtonDown(1))
+            {
+                for (int i = 0; i < hitColliders.Length; i++)
+                {
+                    PointVolume.Add(hitColliders[i].transform.position);
+                }
+            }
+
+            // TODO: remove potential point when used.
+
+        }
+        
+        /*
         if (Input.GetMouseButton(0))
         {
             Debug.Log("The left mouse button is being held down.");
@@ -62,17 +116,7 @@ public class SCA : MonoBehaviour
                 PointVolume.Add(Position);
             }
         }
-
-        // Perform growth.
-        List<Edge> newEdges = BranchGrowth();
-
-        // Draw branches.
-        foreach (Edge edge in newEdges)
-        {
-            //edge.drawEdgeAsParticles(branchParticleStepSize, BranchParticle);
-            edge.drawEdgeAsMesh(meshFilter);
-            edge.drawEdgeVertices(BranchParticle);
-        }
+        */
     }
 
     List<Edge> BranchGrowth()
