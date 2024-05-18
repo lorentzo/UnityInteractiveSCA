@@ -14,6 +14,11 @@ public class SCA : MonoBehaviour
     public GameObject PotentialPoint;
     public GameObject PotentialPointActive;
     private List<GameObject> potentialPointsForGrowth = new List<GameObject>();
+    private GameObject activePotentialPoint = null;
+    private GameObject activePotentialPointDrawable = null;
+    private List<GameObject> activePotentialGroup = new List<GameObject>();
+    private List<GameObject> activePotentialGroupDrawable = new List<GameObject>();
+    private float activePotentialGroupSearchRadius = 10.0f;
 
     float branchParticleStepSize = 0.3f;
     int currBranchID = 0;
@@ -36,13 +41,7 @@ public class SCA : MonoBehaviour
     {
         int nPoints = 100;
         float range = 25.0f;
-        for (int i = 0; i < nPoints; ++i)
-        {
-            float x = (Random.value - 0.5f) * 2.0f * range;
-            float y = (Random.value) * 2.0f * range;
-            float z = (Random.value - 0.5f) * 2.0f * range;
-            potentialPointsForGrowth.Add(Instantiate(PotentialPoint, new Vector3(x,y,z), Quaternion.identity));
-        }
+        addPotentialPoints(nPoints, new Vector3(0,25.0f,0), range);
     }
 
     // Update is called once per frame
@@ -68,39 +67,54 @@ public class SCA : MonoBehaviour
         // 3D space is filled with points.
         // User selects the points which are used for growth.
 
-        
+        // TODO: make selection continous: always look in sphere around cursor.
+
         RaycastHit hit;
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
         // TODO: add collision layers.
-        GameObject activePotentialPoint = null;
         if (Physics.Raycast(ray, out hit, Mathf.Infinity))
         {
-            GameObject activePotentialPointDrawable = Instantiate(PotentialPointActive, hit.transform.position, Quaternion.identity);
+            if (activePotentialPoint == null)
+            {
+                selectPotentialPoints(hit);
+            }
+
+            if (hit.collider.gameObject == activePotentialPoint)
+            {
+                // Pointing on the same.
+                // Do nothing.
+            }
+            else
+            {
+                selectPotentialPoints(hit);
+            }
             
-            // Point per point.
+            // Add point per point.
             if (Input.GetMouseButtonDown(0))
             {
-                PointVolume.Add(hit.point);
+                PointVolume.Add(activePotentialPoint.transform.position);
+                addPotentialPoints(15, activePotentialPoint.transform.position, 15.0f);
+                // TODO: Remove potential point when used.
+                //Destroy(activePotentialPoint);
+                clearSelectedPoints();
             }
-
-            // Groups of points.
-            float radius = 10.0f;
-            Collider[] hitColliders = Physics.OverlapSphere(hit.point, radius);
-            for (int i = 0; i < hitColliders.Length; i++)
-            {
-                // TODO: remove once not hovering
-                Instantiate(PotentialPointActive, hitColliders[i].transform.position, Quaternion.identity);
-            }
+            
+            // Add groups of points.
             if (Input.GetMouseButtonDown(1))
             {
-                for (int i = 0; i < hitColliders.Length; i++)
+                foreach (GameObject activePotentialPoint in activePotentialGroup)
                 {
-                    PointVolume.Add(hitColliders[i].transform.position);
+                    PointVolume.Add(activePotentialPoint.transform.position);
+                    // TODO: Remove potential point when used.
+                    //Destroy(activePotentialPoint);
+                    addPotentialPoints(5, activePotentialPoint.transform.position, 5.0f);
                 }
+                clearSelectedPoints();
             }
-
-            // TODO: remove potential point when used.
-
+        }
+        else
+        {
+            clearSelectedPoints();
         }
         
         /*
@@ -117,6 +131,59 @@ public class SCA : MonoBehaviour
             }
         }
         */
+    }
+
+    void addPotentialPoints(int nPoints, Vector3 origin, float spread)
+    {
+        for (int i = 0; i < nPoints; ++i)
+        {
+            float x = (Random.value - 0.5f) * 2.0f * spread + origin.x;
+            float y = (Random.value - 0.5f) * 2.0f * spread + origin.y;
+            float z = (Random.value - 0.5f) * 2.0f * spread + origin.z;
+            Instantiate(PotentialPoint, new Vector3(x,y,z), Quaternion.identity);
+        }
+    }
+
+    void selectPotentialPoints(RaycastHit hit)
+    {
+        // Change choice.
+        activePotentialPoint = hit.collider.gameObject;
+
+        // Redraw choice.
+        if (activePotentialPointDrawable != null)
+            Destroy(activePotentialPointDrawable);
+        activePotentialPointDrawable = Instantiate(PotentialPointActive, hit.transform.position, Quaternion.identity);
+    
+        // Group choice change.
+        activePotentialGroup.Clear();
+        Collider[] hitColliders = Physics.OverlapSphere(activePotentialPoint.transform.position, activePotentialGroupSearchRadius);
+        for (int i = 0; i < hitColliders.Length; i++)
+        {
+            activePotentialGroup.Add(hitColliders[i].gameObject);
+        }
+
+        // Redraw group choice.
+        foreach (GameObject o in activePotentialGroupDrawable)
+        {
+            Destroy(o);
+        }
+        activePotentialGroupDrawable.Clear();
+        for (int i = 0; i < hitColliders.Length; i++)
+        {
+            activePotentialGroupDrawable.Add(Instantiate(PotentialPointActive, hitColliders[i].transform.position, Quaternion.identity));                   
+        }
+    }
+
+    void clearSelectedPoints()
+    {
+        activePotentialPoint = null;
+        Destroy(activePotentialPointDrawable);
+        activePotentialGroup.Clear();
+        foreach (GameObject o in activePotentialGroupDrawable)
+        {
+            Destroy(o);
+        }
+        activePotentialGroupDrawable.Clear();
     }
 
     List<Edge> BranchGrowth()
