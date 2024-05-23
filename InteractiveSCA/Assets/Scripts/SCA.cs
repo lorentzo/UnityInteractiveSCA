@@ -7,13 +7,16 @@ public class SCA : MonoBehaviour
     // Params.
     public GameObject Particle;
     public GameObject BranchParticle;
+    public GameObject cameraGameObject;
+    public GameObject cameraToObject;
+
+    private Camera playerCamera;
 
     // TODO: enable adding start points
     private Vector3 StartingPoint = new Vector3(0.0f, 0.0f, 0.0f);
 
     public GameObject PotentialPoint;
     public GameObject PotentialPointActive;
-    private List<GameObject> potentialPointsForGrowth = new List<GameObject>();
     private GameObject activePotentialPoint = null;
     private GameObject activePotentialPointDrawable = null;
     private List<GameObject> activePotentialGroup = new List<GameObject>();
@@ -34,6 +37,7 @@ public class SCA : MonoBehaviour
     void Awake()
     {
         meshFilter = gameObject.AddComponent<MeshFilter>();
+        playerCamera = cameraGameObject.GetComponent<Camera>();
     }
 
     // Start is called before the first frame update
@@ -60,6 +64,19 @@ public class SCA : MonoBehaviour
             edge.drawEdgeAsMesh(meshFilter);
             edge.drawEdgeVertices(BranchParticle);
         }
+
+        // Update camera look at.
+        if (Edges.Count > 0)
+        {
+            Vector3 cameraLookAtPos = new Vector3(0f, 0f, 0f);
+            foreach(Edge edge in Edges)
+            {
+                cameraLookAtPos += edge.V1;
+            }
+            cameraLookAtPos /= Edges.Count;
+            cameraToObject.transform.position = cameraLookAtPos;
+            cameraGameObject.transform.LookAt(cameraToObject.transform);
+        }
     }
 
     void InteractiveAddVolumePoints()
@@ -70,7 +87,7 @@ public class SCA : MonoBehaviour
         // TODO: make selection continous: always look in sphere around cursor.
 
         RaycastHit hit;
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        Ray ray = playerCamera.ScreenPointToRay(Input.mousePosition);
         // TODO: add collision layers.
         if (Physics.Raycast(ray, out hit, Mathf.Infinity))
         {
@@ -121,7 +138,7 @@ public class SCA : MonoBehaviour
         if (Input.GetMouseButton(0))
         {
             Debug.Log("The left mouse button is being held down.");
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            Ray ray = playerCamera.ScreenPointToRay(Input.mousePosition);
             for (int i = 0; i < 1; i++)
             {
                 Vector3 Position = ray.origin + ray.direction * 30.0f;
