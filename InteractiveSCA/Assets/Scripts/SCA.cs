@@ -26,7 +26,7 @@ public class SCA : MonoBehaviour
     float branchParticleStepSize = 0.3f;
     int currBranchID = 0;
     float currThickness = 0.5f;
-    float thicknessFalloff = 0.98f;
+    float thicknessFalloff = 0.995f;
     int nVertPerEdgeVertex = 4;
 
     // Variables.
@@ -43,8 +43,8 @@ public class SCA : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        int nPoints = 100;
-        float range = 25.0f;
+        int nPoints = 1;
+        float range = 5.0f;
         addPotentialPoints(nPoints, new Vector3(0,25.0f,0), range);
     }
 
@@ -110,7 +110,7 @@ public class SCA : MonoBehaviour
             if (Input.GetMouseButtonDown(0))
             {
                 PointVolume.Add(activePotentialPoint.transform.position);
-                addPotentialPoints(15, activePotentialPoint.transform.position, 15.0f);
+                addPotentialPoints(30, activePotentialPoint.transform.position, 30.0f);
                 // TODO: Remove potential point when used.
                 //Destroy(activePotentialPoint);
                 clearSelectedPoints();
@@ -124,7 +124,7 @@ public class SCA : MonoBehaviour
                     PointVolume.Add(activePotentialPoint.transform.position);
                     // TODO: Remove potential point when used.
                     //Destroy(activePotentialPoint);
-                    addPotentialPoints(5, activePotentialPoint.transform.position, 5.0f);
+                    addPotentialPoints(3, activePotentialPoint.transform.position, 10.0f);
                 }
                 clearSelectedPoints();
             }
