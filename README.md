@@ -2,7 +2,7 @@
 
 Interactive Space colonization algorithm in Unity.
 
-Currently a playable prototype. Try in to itch.io: https://lovbos.itch.io/interactive-abstract-tree-growth
+Currently a playable prototype. Try it on itch.io: https://lovbos.itch.io/interactive-abstract-tree-growth
 
 ### Gallery
 
