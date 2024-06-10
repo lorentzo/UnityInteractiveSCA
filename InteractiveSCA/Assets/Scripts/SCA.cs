@@ -17,6 +17,7 @@ public class SCA : MonoBehaviour
 
     public GameObject PotentialPoint;
     public GameObject PotentialPointActive;
+    public GameObject PotentialPointGroupActive;
     private GameObject activePotentialPoint = null;
     private GameObject activePotentialPointDrawable = null;
     private List<GameObject> activePotentialGroup = new List<GameObject>();
@@ -44,8 +45,8 @@ public class SCA : MonoBehaviour
     void Start()
     {
         int nPoints = 1;
-        float range = 5.0f;
-        addPotentialPoints(nPoints, new Vector3(0,25.0f,0), range);
+        float range = 3.0f;
+        addPotentialPoints(nPoints, new Vector3(0,30.0f,0), range);
     }
 
     // Update is called once per frame

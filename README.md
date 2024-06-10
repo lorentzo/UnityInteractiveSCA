@@ -14,7 +14,11 @@ Interactive Space colonization algorithm in Unity.
 ![](Gallery/2_6.png)
 ![](Gallery/2_7.png)
 
-TODO:
+Improvables:
+* Smoother `camera-to` transform 
+* Adding leafs
+* Scaling edges based on parent
+* Gameplay: number of branches, goal
+* START/EXIT screen
 * edge mesh connectivity
-* smoother growth
 * Code refactoring (see comments)

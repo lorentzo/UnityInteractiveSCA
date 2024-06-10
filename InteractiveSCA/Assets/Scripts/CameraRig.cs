@@ -41,17 +41,20 @@ public class CameraRig : MonoBehaviour
         if(Input.GetKey("q"))
         {
             Vector3 dir = (cameraLookTo.transform.position - transform.position);
-            dir.Normalize();
-            transform.Translate(dir * speed * Time.deltaTime, Space.World);
-            transform.LookAt(cameraLookTo.transform);
+            if (dir.magnitude > 50.0f)
+            {
+                dir.Normalize();
+                transform.Translate(dir * speed * Time.deltaTime, Space.World);
+                transform.LookAt(cameraLookTo.transform);
+            }
         }
 
         if(Input.GetKey("e"))
         {
             Vector3 dir = (cameraLookTo.transform.position - transform.position);
-            dir.Normalize();
-            transform.Translate(-dir * speed * Time.deltaTime, Space.World);
-            transform.LookAt(cameraLookTo.transform);
+                dir.Normalize();
+                transform.Translate(-dir * speed * Time.deltaTime, Space.World);
+                transform.LookAt(cameraLookTo.transform);
         }
     }
 }
